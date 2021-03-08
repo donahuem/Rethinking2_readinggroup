@@ -198,20 +198,20 @@ Laffer$tax_revenue_std <- scale(Laffer$tax_revenue)
 
 linear_mod <- quap(
   alist(
-    tax_revenue_std ~ dnorm( mu , exp(log_sigma) ),
+    tax_revenue_std ~ dnorm( mu , exp(sigma) ), # could use sigma and then dexp(1) in line 205, exp makes it positive
     mu <- a + b*tax_rate_std,
-    a ~ dnorm( 0.5 , 1 ),
+    a ~ dnorm( 0 , 1 ),
     b ~ dnorm( 0 , 10 ),
-    log_sigma ~ dnorm( 0 , 1 )
+    sigma ~ dnorm( 0 , 1 )
   ), data=Laffer )
 
 curved_mod <- quap(
   alist(
-    tax_revenue_std ~ dnorm( mu , exp(log_sigma) ),
+    tax_revenue_std ~ dnorm( mu , exp(sigma) ),
     mu <- a + b*tax_rate_std^2,
-    a ~ dnorm( 0.5 , 1 ),
+    a ~ dnorm( 0 , 1 ),
     b ~ dnorm( 0 , 10 ),
-    log_sigma ~ dnorm( 0 , 1 )
+    sigma ~ dnorm( 0 , 1 )
   ), data=Laffer )
   
 compare(linear_mod, curved_mod)
@@ -263,15 +263,19 @@ plot( PSIS_curved$k , WAIC_curved$penalty , xlab="PSIS Pareto k" ,
 # refit curved model with student's t distribtuion
 curved_mod_student <- quap(
   alist(
-    tax_revenue_std ~ dstudent(2, mu , exp(log_sigma) ),
+    tax_revenue_std ~ dstudent(2, mu , exp(sigma) ),
     mu <- a + b*tax_rate_std^2,
     a ~ dnorm( 0.5 , 1 ),
     b ~ dnorm( 0 , 10 ),
-    log_sigma ~ dnorm( 0 , 1 )
+    sigma ~ dnorm( 0 , 1 )
   ), data=Laffer )
 
 PSIS_curved_student <- PSIS(curved_mod_student, pointwise=TRUE)
 WAIC_curved_student <- WAIC(curved_mod_student, pointwise=TRUE)
+
+plot( PSIS_curved_student$k , WAIC_curved_student$penalty , xlab="PSIS Pareto k" ,
+      ylab="WAIC penalty" , col=rangi2 , lwd=2, main = "student's t model" )
+
 # the outlier becomes much less important in the curved model with the student's t distribution
 # You can see this by looking at row 12 in the above data. This is expected because this 
 # distribution indicates more extreme values are less unexpected than a guassian distribution.
@@ -319,10 +323,10 @@ Is2_from_Is3 <- KLDivergence(Island2, Island3) # 2.010914
 Is3_from_Is1 <- KLDivergence(Island3, Island1) # 0.6258376
 Is3_from_Is2 <- KLDivergence(Island3, Island2) # 1.838845
 
-# Island 3, which has the highest entropy (see above) makes the best predictions (lowest divergence).
-# Similarly, Island 2, which has the lowest entropy (see above), makes the worst predictions (highest
-# divergence). This shows that more island entropy (uncertainty) leads to less certain out-of-sample
-# predictions, and more dissimilar observations are less unexpected.
+# Islands that more island entropy (in-sample uncertainty) leads to less certain out-of-sample
+# predictions, as more dissimilar observations are less unexpected. Therefore, preditions from
+# Island 1, which has the highest entropy (see above), are generally pretty good while predictions
+# from Island 2, which has the lowest entropy (see above), generally make the worst predictions.
 
 # 7H4. Recall the marriage, age, and happiness collider bias example from Chapter 6. Run models
 # m6.9 and m6.10 again. Compare these two models using WAIC (or LOO, they will produce identical
